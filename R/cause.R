@@ -1,3 +1,8 @@
+.onLoad <- function(libname, pkgname){
+    reset_itc()
+    set_parallel(TRUE)
+}
+
 
 #'@title CAUSE
 #'@description Fit CAUSE confounding only and full (causal) models,

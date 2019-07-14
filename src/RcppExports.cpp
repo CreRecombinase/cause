@@ -5,6 +5,36 @@
 
 using namespace Rcpp;
 
+// reset_itc
+void reset_itc();
+RcppExport SEXP _cause_reset_itc() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    reset_itc();
+    return R_NilValue;
+END_RCPP
+}
+// set_parallel
+bool set_parallel(bool parallel);
+RcppExport SEXP _cause_set_parallel(SEXP parallelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< bool >::type parallel(parallelSEXP);
+    rcpp_result_gen = Rcpp::wrap(set_parallel(parallel));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_parallel
+bool get_parallel();
+RcppExport SEXP _cause_get_parallel() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_parallel());
+    return rcpp_result_gen;
+END_RCPP
+}
 // loglik_ij
 double loglik_ij(const double rho, const double g, const double gp, const double q, const double sigma1, const double sigma2, const double b1, const double b2, const double s1, const double s2);
 RcppExport SEXP _cause_loglik_ij(SEXP rhoSEXP, SEXP gSEXP, SEXP gpSEXP, SEXP qSEXP, SEXP sigma1SEXP, SEXP sigma2SEXP, SEXP b1SEXP, SEXP b2SEXP, SEXP s1SEXP, SEXP s2SEXP) {
@@ -171,6 +201,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_cause_reset_itc", (DL_FUNC) &_cause_reset_itc, 0},
+    {"_cause_set_parallel", (DL_FUNC) &_cause_set_parallel, 1},
+    {"_cause_get_parallel", (DL_FUNC) &_cause_get_parallel, 0},
     {"_cause_loglik_ij", (DL_FUNC) &_cause_loglik_ij, 10},
     {"_cause_loglik_mat", (DL_FUNC) &_cause_loglik_mat, 10},
     {"_cause_loglik", (DL_FUNC) &_cause_loglik, 11},
