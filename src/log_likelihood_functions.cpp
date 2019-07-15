@@ -1,68 +1,26 @@
 
 #include <algorithm>
 #include <execution>
-#include <RcppParallel.h>
+#include "loglik_classdef.hpp"
 #include <Rcpp.h>
 using namespace Rcpp;
-//using namespace tbb;
+
 
 //RcppParallel::mutex m;
 
-
-bool do_parallel;
-int itc;
+// [[Rcpp::plugins(cpp11)]]
 
 
 template<typename T,typename F>
 void wrap_parallel_for (T block_obj, F && fun_obj){
-  if(!do_parallel){
-    #ifdef DEBUG
-    if(itc++==0){
-
-      Rcpp::Rcerr<<"running serial for-loop"<<std::endl;
-
-    }
-    #endif
     fun_obj(block_obj);
-  }else{
-#ifdef DEBUG
-    if(itc++==0){
-      Rcpp::Rcerr<<"running parallel for loop"<<std::endl;
-    }
-#endif
-    // #ifdef __RCPP_PARALLEL__
-    //     parallel_for(block_obj,fun_obj);
-    // #else
     std::vector<size_t>	rs(block_obj.size());
     std::iota(rs.begin(),rs.end(),block_obj.begin());
     std::for_each(std::execution::par,rs.begin(),rs.end(),fun_obj);
-    //    fun_obj(block_obj);
-    //#endif
-
-  }
 }
 
 
-using namespace RcppParallel;
 
-//[[Rcpp::export]]
-void reset_itc(){
-  itc=0;
-}
-
-//[[Rcpp::export]]
-bool set_parallel(bool parallel=false){
-  do_parallel=parallel;
-  reset_itc();
-  return(do_parallel);
-}
-
-//[[Rcpp::export]]
-bool get_parallel(){
-  return(do_parallel);
-}
-
-// [[Rcpp::plugins(cpp11)]]
 
 // likelihood of (\hat{\beta_1j}, \hat{\beta_2j}) given
 // rho, gamma, eta, q, sigma_1j, sigma_2j, s_1j, s_2j
@@ -109,11 +67,17 @@ double loglik_ij(const double rho, const double g, const double gp, const double
 // rho, b, gamma, U, pi
 // U is given as two vectors, sigma1 and sigma2
 //pi is mixture parameters
-double loglik_i(const double rho, const double g, const double gp, const double q,
-                          const RVector<double> sigma1,
-                          const RVector<double> sigma2,
-                          const RVector<double> pi,
-                          double b1, double b2, double s1, double s2){
+double loglik_i(const double rho,
+		const double g,
+		const double gp,
+		const double q,
+		const RVector<double> sigma1,
+		const RVector<double> sigma2,
+		const RVector<double> pi,
+		double b1,
+		double b2,
+		double s1,
+		double s2){
   int k = sigma1.length();
   std::vector<double> lik_i(k);
   for(size_t j = 0; j < k; j ++){
@@ -128,63 +92,6 @@ double loglik_i(const double rho, const double g, const double gp, const double 
 
 
 
-class logitij_fc{
-  const double rho;
-  const double g;
-  const double gp;
-  const double q;
-  const RVector<double> beta_hat_1;//(tbeta_hat_1);
-  const RVector<double> beta_hat_2;//(tbeta_hat_2);
-  const RVector<double> seb2; //(tseb2);
-  const RVector<double> seb1; //(tseb1);
-  const RVector<double> sigma1; //(tsigma1);
-  const RVector<double> sigma2; //(tsigma2);
-  const int K;
-  const int p = beta_hat_2.size();
-
-  mutable RMatrix<double> lik_mat;//(tlik_mat);
-public:
-  logitij_fc(double rho_, double g_, double gp_, double q_,
-                        NumericVector tsigma1, NumericVector tsigma2,
-                        NumericVector tbeta_hat_1,
-                        NumericVector tbeta_hat_2,
-                        NumericVector tseb1,
-	     NumericVector tseb2,
-	     NumericMatrix tlik_mat):rho(rho_),
-				     g(g_),
-				     gp(gp_),
-				     q(q_),
-				     beta_hat_1(tbeta_hat_1),
-				     beta_hat_2(tbeta_hat_2),
-				     seb2(tseb2),
-				     seb1(tseb1),
-				     sigma1(tsigma1),
-				     sigma2(tsigma2),
-				     K(sigma1.size()),
-				     p(beta_hat_2.size()),
-				     lik_mat(tlik_mat)
-
-  {
-    std::fill(lik_mat.begin(), lik_mat.end(), -1);
-  }
-  void operator()(const tbb::blocked_range<size_t>& r)const {
-    for(size_t i=r.begin(); i!=r.end(); ++i){
-      for(size_t j=0; j<K; j++){
-	lik_mat(i,j) = loglik_ij(rho, g, gp, q,
-				 sigma1[j],sigma2[j],
-				 beta_hat_1[i], beta_hat_2[i], seb1[i], seb2[i]);
-      }
-    }
-  }
-  void operator()(const size_t i) const{
-    for(size_t j=0; j<K; j++){
-      lik_mat(i,j) = loglik_ij(rho, g, gp, q,
-			       sigma1[j],sigma2[j],
-			       beta_hat_1[i], beta_hat_2[i], seb1[i], seb2[i]);
-    }
-  }
-
-};
 
 
 
@@ -193,104 +100,32 @@ public:
 //' and K is the grid size
 //'@export
 // [[Rcpp::export]]
-NumericMatrix loglik_mat(double rho, double g, double gp, double q,
-                        NumericVector tsigma1, NumericVector tsigma2,
-                        NumericVector tbeta_hat_1,
-                        NumericVector tbeta_hat_2,
-                        NumericVector tseb1,
-                        NumericVector tseb2){
-
-  // RVector<double> beta_hat_1(tbeta_hat_1);
-  // RVector<double> beta_hat_2(tbeta_hat_2);
-  // RVector<double> seb2(tseb2);
-  // RVector<double> seb1(tseb1);
-  // RVector<double> sigma1(tsigma1);
-  // RVector<double> sigma2(tsigma2);
+NumericMatrix loglik_mat(double rho,
+			 double g,
+			 double gp,
+			 double q,
+			 NumericVector tsigma1,
+			 NumericVector tsigma2,
+			 NumericVector tbeta_hat_1,
+			 NumericVector tbeta_hat_2,
+			 NumericVector tseb1,
+			 NumericVector tseb2){
 
 
 
   int K = tsigma1.size();
   int p = tbeta_hat_2.size();
   NumericMatrix tlik_mat(p, K);
-  logitij_fc f_obj(rho,  g,  gp,  q,  tsigma1,  tsigma2,  tbeta_hat_1,  tbeta_hat_2, tseb1,  tseb2,  tlik_mat);
+  std::fill(tlik_mat.begin(), tlik_mat.end(), -1);
+  LogLik_obj function_object(rho,  g,  gp,  q,  tsigma1,  tsigma2,  tbeta_hat_1,  tbeta_hat_2, tseb1,  tseb2,  tlik_mat);
 
-  //  RMatrix<double> lik_mat(tlik_mat);
-
-
-
-
-  wrap_parallel_for(tbb::blocked_range<size_t>(0, p),f_obj);
-		    // [&](const blocked_range<size_t>& r){
-		    //  for(size_t i=r.begin(); i!=r.end(); ++i){
-		    //    for(size_t j=0; j<K; j++){
-		    // 	 lik_mat(i,j) = loglik_ij(rho, g, gp, q,
-		    // 				  sigma1[j],sigma2[j],
-		    // 				  beta_hat_1[i], beta_hat_2[i], seb1[i], seb2[i]);
-		    //    }
-		    //  }});
+  RcppParallel::parallelFor(0,p,function_object);
 
   return tlik_mat;
 }
 
 
 
-class logiti_fc{
-  const double rho;
-  const double g;
-  const double gp;
-  const double q;
-  const RVector<double> beta_hat_1;//(tbeta_hat_1);
-  const RVector<double> beta_hat_2;//(tbeta_hat_2);
-  const RVector<double> seb2; //(tseb2);
-  const RVector<double> seb1; //(tseb1);
-  const RVector<double> sigma1; //(tsigma1);
-  const RVector<double> sigma2; //(tsigma2);
-  const RVector<double> pi;
-  const int K;
-
-
-  const int p = beta_hat_2.size();
-
-  mutable RVector<double> ll;//(tlik_mat);
-public:
-  logiti_fc(double rho_, double g_, double gp_, double q_,
-	    NumericVector tsigma1, NumericVector tsigma2,
-	    NumericVector tpi,
-	    NumericVector tbeta_hat_1,
-	    NumericVector tbeta_hat_2,
-	    NumericVector tseb1,
-	    NumericVector tseb2,
-	    NumericVector tll):rho(rho_),
-			       g(g_),
-			       gp(gp_),
-			       q(q_),
-			       beta_hat_1(tbeta_hat_1),
-			       beta_hat_2(tbeta_hat_2),
-			       seb2(tseb2),
-			       seb1(tseb1),
-			       sigma1(tsigma1),
-			       sigma2(tsigma2),
-			       pi(tpi),
-			       K(sigma1.size()),
-			       p(beta_hat_2.size()),
-			       ll(tll)
-
-  {
-    std::fill(ll.begin(), ll.end(), -1);
-  }
-  void operator()(const tbb::blocked_range<size_t>& r)const {
-    for(size_t i=r.begin(); i!=r.end(); ++i){
-      ll[i] = loglik_i(rho, g, gp, q,
-		       sigma1,sigma2,pi,
-		       beta_hat_1[i], beta_hat_2[i], seb1[i], seb2[i]);
-    }
-  }
-    void operator()(const size_t i)const {
-      ll[i] = loglik_i(rho, g, gp, q,
-		       sigma1,sigma2,pi,
-		       beta_hat_1[i], beta_hat_2[i], seb1[i], seb2[i]);
-    }
-};
 
 
 
@@ -307,16 +142,6 @@ double loglik(double rho, double g, double gp, double q,
                         NumericVector tseb2){
 
   using namespace RcppParallel;
-
-  // const RVector<double> sigma1(tsigma1);
-  // const RVector<double> sigma2(tsigma2);
-  // const RVector<double> pi(tpi);
-
-  // const RVector<double> beta_hat_1(tbeta_hat_1);
-  // const RVector<double> beta_hat_2(tbeta_hat_2);
-  // const RVector<double> seb2(tseb2);
-  // const RVector<double> seb1(tseb1);
-
 
   const int p = tbeta_hat_2.size();
   NumericVector tll(p);
@@ -348,14 +173,17 @@ double loglik(double rho, double g, double gp, double q,
 //' and L is the number of posterior samples
 //'@export
 // [[Rcpp::export]]
-NumericMatrix loglik_loo(NumericVector tg, NumericVector tgp, NumericVector tq,
-                        double rho,
-                        NumericVector tsigma1, NumericVector tsigma2,
-                        NumericVector tpi,
-                        NumericVector tbeta_hat_1,
-                        NumericVector tbeta_hat_2,
-                        NumericVector tseb1,
-                        NumericVector tseb2){
+NumericMatrix loglik_loo(NumericVector tg,
+			 NumericVector tgp,
+			 NumericVector tq,
+			 double rho,
+			 NumericVector tsigma1,
+			 NumericVector tsigma2,
+			 NumericVector tpi,
+			 NumericVector tbeta_hat_1,
+			 NumericVector tbeta_hat_2,
+			 NumericVector tseb1,
+			 NumericVector tseb2){
 
   const RVector<double> g(tg);
   const RVector<double> gp(tgp);
@@ -486,14 +314,17 @@ double loglik_i_Z0(const double rho, const double g, const double gp, const doub
 //' and L is the number of posterior samples
 //'@export
 // [[Rcpp::export]]
-NumericMatrix loglik_samps_Z1(NumericVector tg, NumericVector tgp, NumericVector tq,
-                            double rho,
-                            NumericVector tsigma1, NumericVector tsigma2,
-                            NumericVector tpi,
-                            NumericVector tbeta_hat_1,
-                            NumericVector tbeta_hat_2,
-                            NumericVector tseb1,
-                            NumericVector tseb2){
+  NumericMatrix loglik_samps_Z1(NumericVector tg,
+				NumericVector tgp,
+				NumericVector tq,
+				double rho,
+				NumericVector tsigma1,
+				NumericVector tsigma2,
+				NumericVector tpi,
+				NumericVector tbeta_hat_1,
+				NumericVector tbeta_hat_2,
+				NumericVector tseb1,
+				NumericVector tseb2){
 
   const RVector<double> g(tg);
   const RVector<double> gp(tgp);

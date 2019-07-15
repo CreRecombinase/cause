@@ -27,12 +27,16 @@ map_pi_rho <- function(X, mix_grid, rho_start=0,
   rho <- rho_old <- rho_start
   #If there is no initial grid estimate
   if(all(mix_grid$pi==0)){
-    matrix_llik1 <- loglik_mat(rho, 0, 0, 0,
-                              mix_grid$S1, mix_grid$S2,
-                              X$beta_hat_1,
-                              X$beta_hat_2,
-                              X$seb1,
-                              X$seb2)
+      matrix_llik1 <- loglik_mat(rho = rho,
+                                 g = 0,
+                                 gp = 0,
+                                 q = 0,
+                                 tsigma1 =  mix_grid$S1,
+                                 tsigma2 = mix_grid$S2,
+                                 tbeta_hat_1 =  X$beta_hat_1,
+                                 tbeta_hat_2 =  X$beta_hat_2,
+                                 tseb1 = X$seb1,
+                                 tseb2 = X$seb2)
     matrix_llik <- matrix_llik1 - apply(matrix_llik1, 1, max)
     matrix_lik <- exp(matrix_llik)
     w_res <- optfun(matrix_lik =matrix_lik,
@@ -49,12 +53,17 @@ map_pi_rho <- function(X, mix_grid, rho_start=0,
   }
   li_func <- function(rho){
     z <- arctanh(rho)
-    ll <- loglik(rho, 0, 0, 0,
-                    mix_grid$S1, mix_grid$S2,
-                    pi,X$beta_hat_1,
-                    X$beta_hat_2,
-                    X$seb1,
-                    X$seb2) +
+    ll <- loglik(rho = rho,
+                 g = 0,
+                 gp = 0,
+                 q = 0,
+                 tsigma1 = mix_grid$S1,
+                 tsigma2 = mix_grid$S2,
+                 tpi = pi,
+                 tbeta_hat_1 = X$beta_hat_1,
+                    tbeta_hat_2 = X$beta_hat_2,
+                    tseb1 = X$seb1,
+                    tseb2 = X$seb2) +
       z_prior_func(z) + pi_prior
     return(-ll)
   }
@@ -72,13 +81,17 @@ map_pi_rho <- function(X, mix_grid, rho_start=0,
     rho <- opt_rho$minimum
     LLS <- c(LLS, -opt_rho$objective)
     RHO <- c(RHO, rho)
-    #Update pi
-    matrix_llik1 <- loglik_mat(rho, 0, 0, 0,
-                              mix_grid$S1, mix_grid$S2,
-                              X$beta_hat_1,
-                              X$beta_hat_2,
-                              X$seb1,
-                              X$seb2)
+                                        #Update pi
+      matrix_llik1 <- loglik_mat(rho =  rho,
+                                 g =  0,
+                                 gp = 0,
+                                 q = 0,
+                                 tsigma1 = mix_grid$S1,
+                                 tsigma2 = mix_grid$S2,
+                                 tbeta_hat_1 = X$beta_hat_1,
+                                 tbeta_hat_2 = X$beta_hat_2,
+                                 tseb1 = X$seb1,
+                                 tseb2 = X$seb2)
     matrix_llik = matrix_llik1 - apply(matrix_llik1, 1, max)
     matrix_lik = exp(matrix_llik)
     w_res = optfun(matrix_lik =matrix_lik,

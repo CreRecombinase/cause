@@ -34,16 +34,31 @@ in_sample_elpd_loo <- function(X, fits, variants, nsamps=1000){
   #For each data point, calculate log likelihood under posterior
   lls <- lapply(fits, FUN=function(fit){
                if(is.null(fit$joint_post)){
-                 llmat <- loglik_loo(0, 0, 0,
-                                     fit$rho, fit$mix_grid$S1,
-                                     fit$mix_grid$S2, fit$mix_grid$pi,
-                                     X$beta_hat_1, X$beta_hat_2, X$seb1, X$seb2)
+                   llmat <- loglik_loo(tg = 0,
+                                       tgp = 0,
+                                       tq = 0,
+                                       rho = fit$rho,
+                                       tsigma1 = fit$mix_grid$S1,
+                                       tsigma2 = fit$mix_grid$S2,
+                                       tpi = fit$mix_grid$pi,
+                                       tbeta_hat_1 = X$beta_hat_1,
+                                       tbeta_hat_2 = X$beta_hat_2,
+                                       tseb1 = X$seb1,
+                                       tseb2 = X$seb2)
                  return(llmat)
                }
                samps <-samp_from_grid(fit$joint_post, c("q", "gamma", "eta"), nsamps)
-               llmat <- t(loglik_loo(samps$gamma, samps$eta, samps$q, fit$rho,
-                                     fit$mix_grid$S1, fit$mix_grid$S2, fit$mix_grid$pi,
-                                     X$beta_hat_1, X$beta_hat_2, X$seb1, X$seb2))
+               llmat <- t(loglik_loo(tg = samps$gamma,
+                                     tgp = samps$eta,
+                                     tq = samps$q,
+                                     rho = fit$rho,
+                                     tsigma1 = fit$mix_grid$S1,
+                                     tsigma2 = fit$mix_grid$S2,
+                                     tpi = fit$mix_grid$pi,
+                                     tbeta_hat_1 = X$beta_hat_1,
+                                     tbeta_hat_2 = X$beta_hat_2,
+                                     tseb1 = X$seb1,
+                                     tseb2 = X$seb2))
                return(llmat)
               })
 

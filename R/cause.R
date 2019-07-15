@@ -1,7 +1,4 @@
-.onLoad <- function(libname, pkgname){
-    reset_itc()
-    set_parallel(TRUE)
-}
+
 
 
 #'@title CAUSE

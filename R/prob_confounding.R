@@ -23,15 +23,29 @@ prob_confounding <- function(X, fit, nsamps=1000, name_post = ""){
                          c("q", "gamma", "eta"), nsamps)
   mix_grid <- fit$mix_grid
   rho <- fit$rho
-  ll_mat_Z1 <- loglik_samps_Z1(samps$gamma, samps$eta, samps$q, rho,
-                      mix_grid$S1, mix_grid$S2, mix_grid$pi,
-                      X$beta_hat_1, X$beta_hat_2,
-                      X$seb1, X$seb2)
+  ll_mat_Z1 <- loglik_samps_Z1(tg = samps$gamma,
+                               tgp = samps$eta,
+                               tq = samps$q,
+                               rho = rho,
+                               tsigma1 = mix_grid$S1,
+                               tsigma2 = mix_grid$S2,
+                               tpi = mix_grid$pi,
+                               tbeta_hat_1 = X$beta_hat_1,
+                               tbeta_hat_2 = X$beta_hat_2,
+                               tseb1 = X$seb1,
+                               tseb2 = X$seb2)
 
-  ll_mat_Z0 <- loglik_samps_Z0(samps$gamma, samps$eta, samps$q, rho,
-                              mix_grid$S1, mix_grid$S2, mix_grid$pi,
-                              X$beta_hat_1, X$beta_hat_2,
-                              X$seb1, X$seb2)
+  ll_mat_Z0 <- loglik_samps_Z0(tg = samps$gamma,
+                               tgp = samps$eta,
+                               tq = samps$q,
+                               rho = rho,
+                               tsigma1 = mix_grid$S1,
+                               tsigma2 = mix_grid$S2,
+                               tpi = mix_grid$pi,
+                               tbeta_hat_1 = X$beta_hat_1,
+                               tbeta_hat_2 = X$beta_hat_2,
+                               tseb1 = X$seb1,
+                               tseb2 = X$seb2)
   ll_Z1 = rowMeans(ll_mat_Z1)
   ll_Z0 = rowMeans(ll_mat_Z0)
   prob_Z1 <- exp(ll_Z1)/(exp(ll_Z1) + exp(ll_Z0))
